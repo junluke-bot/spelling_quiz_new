@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spelling Bee — Jayden</title>
+  <style>
+    /* Colorful animated gradient background + dark mode */
+    :root{--text:#111827;--muted:#6b7280;--card:#ffffffcc;--border:#e5e7eb}
+    @media (prefers-color-scheme: dark){:root{--text:#fafafa;--muted:#9ca3af;--card:#0c0c0ccc;--border:#262626}}
+    html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;color:var(--text)}
+    body{background:linear-gradient(120deg,#a1c4fd,#c2e9fb,#fde7a9,#fbc2eb,#fad0c4);background-size:500% 500%;animation:gradientShift 22s ease-in-out infinite}
+    @media (prefers-color-scheme: dark){body{background:linear-gradient(120deg,#0f2027,#203a43,#2c5364,#1a2a6c,#3b4371);background-size:500% 500%;animation:gradientShift 28s ease-in-out infinite}}
+    @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    .wrap{max-width:900px;margin:0 auto;padding:20px}
+    h1{font-size:clamp(20px,3.5vw,30px);margin:0 0 6px;font-weight:800}
+    .muted{color:var(--muted)}
+    .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0 20px}
+    select,button,input[type=text]{border:1px solid var(--border);background:#ffffffd9;color:inherit;border-radius:14px;padding:10px 12px;font-size:16px;backdrop-filter:saturate(120%) blur(4px)}
+    @media (prefers-color-scheme: dark){select,button,input[type=text]{background:#0b0b0bd9}}
+    button.primary{background:#111111;color:#fff;border-color:#111111}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.12);backdrop-filter:saturate(150%) blur(6px)}
+    .row{display:flex;justify-content:space-between;align-items:center}
+    .hint{font-size:14px}
+    .ok{color:#059669}.okbg{background:#ecfdf5;border-color:rgba(16,185,129,.25)}
+    .err{color:#dc2626}.errbg{background:#fef2f2;border-color:rgba(239,68,68,.25)}
+    @media (prefers-color-scheme: dark){.okbg{background:rgba(6,78,59,.25)}.errbg{background:rgba(127,29,29,.25)}}
+    .review{display:grid;gap:10px}
+    kbd{border:1px solid var(--border);border-radius:6px;padding:2px 6px}
+    .footer{color:var(--muted);font-size:12px;margin-top:16px}
+    .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .score{font-size:14px}
+    .big{font-size:18px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Spelling Bee — Scripps Two Bee (4th Grade)</h1>
+      <div class="muted">Hear the definition, then type the word. Works offline as a single HTML file.</div>
+      <div class="controls">
+        <label>
+          <span class="muted">Set</span><br>
+          <select id="setSelect"></select>
+        </label>
+        <label>
+          <span class="muted">Options</span><br>
+          <span style="display:inline-flex;gap:12px;align-items:center">
+            <label><input type="checkbox" id="shuffleChk" checked> Shuffle</label>
+            <label><input type="checkbox" id="posChk" checked> Show part of speech</label>
+          </span>
+        </label>
+        <button class="primary" id="startBtn">Start Quiz</button>
+      </div>
+    </header>
+    <main id="main">
+      <div class="card">
+        <p class="big">Choose a set and press <b>Start Quiz</b>. Tip: press <kbd>Enter</kbd> to check/continue.</p>
+        <ul>
+          <li>🔊 <b>Play definition</b> reads the clue aloud</li>
+          <li>👂 <b>Say the word</b> speaks the correct spelling</li>
+          <li>💡 <b>Hint</b> gives first/last letters</li>
+        </ul>
+      </div>
+    </main>
+    <div class="footer">Variants accepted: <i>moustache/mustache</i>, <i>artifacts/artefacts</i>. Built for Jayden 🐝</div>
+  </div>
+<script>
+const WORDS = [
+  { w:"hesitate", p:"verb", d:"to delay or pause typically for a moment" },
+  { w:"scorcher", p:"noun", d:"something very hot" },
+  { w:"scavenger", p:"noun", d:"an organism that typically feeds on refuse or carrion" },
+  { w:"fragments", p:"plural noun", d:"parts broken off; imperfect or incomplete parts" },
+  { w:"deflated", p:"verb", d:"released air or gas from" },
+  { w:"unleash", p:"verb", d:"to let loose from control or restraint; to release" },
+  { w:"ration", p:"noun", d:"the food allowance of one person or one animal for one day" },
+  { w:"cosmetics", p:"plural noun", d:"preparations applied to the body for beautifying or caring for skin, hair, nails, lips, eyes, or teeth" },
+  { w:"crawdad", p:"noun", d:"a small freshwater crustacean resembling a lobster" },
+  { w:"frustration", p:"noun", d:"something that induces feelings of discouragement" },
+  { w:"unruly", p:"adjective", d:"not readily ruled, disciplined, or managed; turbulent, uncontrollable" },
+  { w:"mascot", p:"noun", d:"a cherished emblem or symbol of a group or institution" },
+  { w:"aroma", p:"noun", d:"any smell or odor" },
+  { w:"moustache", a:["mustache"], p:"noun", d:"hair growing on the upper lip" },
+  { w:"artifacts", a:["artefacts"], p:"plural noun", d:"objects showing human workmanship, especially from a particular period" },
+  { w:"perfume", p:"noun", d:"a fluid containing essences or synthetics used for its scent" },
+  { w:"sinister", p:"adjective", d:"evil or suggestive of evil" },
+  { w:"tuxedo", p:"noun", d:"semiformal evening clothing for men; typically a jacket, dress shirt, and cummerbund" },
+  { w:"discoveries", p:"plural noun", d:"acts or instances of finding or finding out" },
+  { w:"lurches", p:"verb", d:"moves unsteadily or in a series of stops and starts; staggers" },
+  { w:"language", p:"noun", d:"the words and methods of combining them used and understood by a community" },
+  { w:"prognosis", p:"noun", d:"the act or art of foretelling the course of a disease" },
+  { w:"Buffalo", p:"geographical entry", d:"city and port on Lake Erie and the Niagara River in western New York" },
+  { w:"sequins", p:"plural noun", d:"small shiny ornaments with a hole for sewing onto cloth" },
+  { w:"gallop", p:"noun", d:"the natural 3‑beat gait of a horse" },
+  { w:"fabulous", p:"adjective", d:"outstanding or remarkable especially in some pleasing quality" },
+  { w:"lanky", p:"adjective", d:"tall, somewhat thin, and usually loose‑jointed" },
+  { w:"fluently", p:"adverb", d:"in an easy, flowing, and graceful manner" },
+  { w:"mysterious", p:"adjective", d:"difficult or impossible to understand; obscure" },
+  { w:"brandished", p:"verb", d:"shook or waved (a weapon) menacingly" },
+  { w:"sardines", p:"plural noun", d:"several small or immature fishes suitable for preserving for food" },
+  { w:"anguish", p:"noun", d:"extreme pain or distress" },
+  { w:"conical", p:"adjective", d:"cone‑shaped" },
+  { w:"rickety", p:"adjective", d:"weak in the joints; tottering" },
+  { w:"lilt", p:"noun", d:"a rhythmical swing, flow, or cadence" },
+  { w:"pediatric", p:"adjective", d:"of or relating to the care and medical treatment of children" },
+  { w:"porridge", p:"noun", d:"a soft food of legumes or grains boiled in water or milk until thick" },
+  { w:"democracy", p:"noun", d:"government by the people; rule of the majority" },
+  { w:"rummage", p:"verb", d:"to make a thorough search in; ransack" },
+  { w:"beige", p:"adjective", d:"a light grayish‑yellowish brown color" },
+  { w:"ancestral", p:"adjective", d:"of or belonging to one or more persons from whom one is descended" },
+  { w:"grimace", p:"noun", d:"a deliberate or involuntary facial distortion expressing a feeling" },
+  { w:"gaunt", p:"adjective", d:"thin and angular; attenuated especially by fasting or suffering" },
+  { w:"enormous", p:"adjective", d:"extraordinarily great in size, number, degree, or significance" },
+  { w:"geranium", p:"noun", d:"a plant of a widely distributed genus with regular flowers" },
+  { w:"nautical", p:"adjective", d:"of, relating to, or associated with sailors, navigation, or ships" },
+  { w:"dubious", p:"adjective", d:"questionable; open to doubt" },
+  { w:"ebony", p:"adjective", d:"very dark or black in color" },
+  { w:"foreign", p:"adjective", d:"from or characteristic of a place or country other than one's own; not native" },
+  { w:"paltry", p:"adjective", d:"inferior, trashy, or worthless" },
+];
+const SETS = {
+  "All (1–50)": [...Array(50)].map((_,i)=>i),
+  "Set 1 (1–10)": Array.from({length:10},(_,i)=>i),
+  "Set 2 (11–20)": Array.from({length:10},(_,i)=>i+10),
+  "Set 3 (21–30)": Array.from({length:10},(_,i)=>i+20),
+  "Set 4 (31–40)": Array.from({length:10},(_,i)=>i+30),
+  "Set 5 (41–50)": Array.from({length:10},(_,i)=>i+40),
+};
+const $ = (s)=>document.querySelector(s);
+const speak = (t)=>{try{const s=window.speechSynthesis;if(!s) return;const u=new SpeechSynthesisUtterance(t);u.rate=0.95;u.pitch=1.0;s.cancel();s.speak(u);}catch(e){}}
+const norm = (s)=> (s||"").toLowerCase().normalize("NFKD").replace(/[^a-z]/g,"").trim();
+let activeIdxs = SETS["Set 1 (1–10)"].slice(); let items = []; let posShown = true; let index = 0; let revealed = false; let results = [];
+const setSel = document.getElementById('setSelect');
+for(const k of Object.keys(SETS)){ const opt=document.createElement('option'); opt.value=k; opt.textContent=k; setSel.appendChild(opt); }
+setSel.value = 'Set 1 (1–10)';
+document.getElementById('posChk').addEventListener('change', e=>{posShown = e.target.checked});
+document.getElementById('shuffleChk').addEventListener('change', ()=>{});
+document.getElementById('startBtn').addEventListener('click', startQuiz);
+setSel.addEventListener('change', e=>{ activeIdxs = SETS[e.target.value].slice(); });
+function startQuiz(){ const shuf = document.getElementById('shuffleChk').checked; items = activeIdxs.map(i=>WORDS[i]); if (shuf){ for(let i=items.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [items[i],items[j]]=[items[j],items[i]]; } } index=0; revealed=false; results=[]; renderQuestion(); }
+function renderQuestion(){ const m = document.getElementById('main'); if(index>=items.length){ return renderFinish(); } const cur = items[index]; m.innerHTML = `
+    <div class="row">
+      <div class="muted">Word ${index+1} / ${items.length}</div>
+      <div class="score">Score: ${results.filter(r=>r.ok).length} ✓</div>
+    </div>
+    <div class="card">
+      <div class="btns">
+        <button onclick="playDef()">🔊 Play definition</button>
+        <button onclick="speak(items[${index}].w)">👂 Say the word</button>
+      </div>
+      <p class="big"><b>Definition:</b> ${cur.d} ${posShown?`<span class="muted">(${cur.p})</span>`:''}</p>
+      <input id="answer" type="text" placeholder="Type the word here" onkeydown="handleKey(event)" autofocus />
+      <div class="btns">
+        <button class="primary" onclick="check()">Check</button>
+        <button onclick="hint()">Give a hint</button>
+        <button onclick="skip()">Skip</button>
+      </div>
+      <div id="feedback" style="margin-top:10px"></div>
+    </div>
+    <div class="row hint"><div>Tip: press <kbd>Enter</kbd> to check/continue.</div><button onclick="restart()" class="muted" style="border:none;background:transparent;text-decoration:underline">Restart set</button></div>
+  `; playDef(); }
+function playDef(){ const cur = items[index]; speak(`${cur.d}. ${posShown?`Part of speech: ${cur.p}.`:''} Type the correct spelling.`); }
+function accepted(cur){ const arr = [cur.w, ...(cur.a||[])]; return arr.map(norm); }
+function check(){ const cur = items[index]; const val = norm(document.getElementById('answer').value); const ok = accepted(cur).includes(val); results.push({w:cur.w, ok, guess:document.getElementById('answer').value}); const fb = document.getElementById('feedback'); revealed = true; if(ok){ fb.className = 'card okbg'; fb.innerHTML = `✅ Correct! <b>${cur.w}</b>`; } else { fb.className = 'card errbg'; fb.innerHTML = `❌ Not quite. The correct spelling is <b>${cur.w}</b>${cur.a?` (also accepted: ${cur.a.join(', ')})`:''}.`; } }
+function next(){ revealed=false; index++; renderQuestion(); }
+function handleKey(e){ if(e.key==='Enter'){ if(!revealed) check(); else next(); } }
+function hint(){ const cur = items[index]; const first = cur.w[0]; const last = cur.w[cur.w.length-1]; speak(`Hint: the first letter is ${first}. The word ends with ${last}.`); }
+function skip(){ const cur = items[index]; results.push({w:cur.w, ok:false, guess:document.getElementById('answer').value||'(skipped)'}); const fb = document.getElementById('feedback'); revealed=true; fb.className='card errbg'; fb.innerHTML = `⏭️ Skipped. The correct spelling is <b>${cur.w}</b>.`; }
+function restart(){ startQuiz(); }
+function renderFinish(){ const m = document.getElementById('main'); const total = items.length; const correct = results.filter(r=>r.ok).length; m.innerHTML = `
+    <div class="card">
+      <h2>Great work! 🎉</h2>
+      <p>You scored <b>${correct}</b> out of <b>${total}</b>.</p>
+      <div class="btns">
+        <button class="primary" onclick="startQuiz()">Try again</button>
+      </div>
+      <h3>Review</h3>
+      <div class="review">
+        ${results.map(r=>`<div class="card" style="padding:10px"><div><b>${r.w}</b></div><div class="muted" style="font-size:13px">${WORDS.find(x=>x.w===r.w).d}</div><div class="${r.ok?'ok':'err'}" style="font-size:14px">${r.ok?'✓ Correct':`✗ Your answer: ${r.guess}`}</div></div>`).join('')}
+      </div>
+    </div>
+  `; }
+</script>
+</body>
+</html>
